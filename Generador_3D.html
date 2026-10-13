@@ -1,0 +1,1168 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generador de Corpóreos 3D | CarteLed Studio PRO</title>
+    
+    <!-- Librerías 3D locales y garantizadas (Funcionan 100% offline sin internet) -->
+    <script src="assets/three.min.js"></script>
+    <script src="assets/OrbitControls.js"></script>
+    <script src="assets/SVGLoader.js"></script>
+    <script src="assets/STLExporter.js"></script>
+    <script src="assets/opentype.min.js"></script>
+    <!-- Fuentes embebidas en base64 para carga instantánea offline -->
+    <script src="assets/font_impact.js"></script>
+
+    <style>
+        :root {
+            --bg-dark: #0a0a10;
+            --panel-bg: #13131c;
+            --panel-border: #232334;
+            --neon-cyan: #00f3ff;
+            --neon-magenta: #ff00ea;
+            --neon-green: #39ff14;
+            --text-main: #f0f0f8;
+            --text-muted: #8b8ba5;
+            --input-bg: #1c1c2b;
+            --input-border: #2f2f48;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            display: flex;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+        }
+
+        /* --- Panel Lateral --- */
+        #sidebar {
+            width: 390px;
+            min-width: 390px;
+            background: var(--panel-bg);
+            border-right: 1px solid var(--panel-border);
+            display: flex;
+            flex-direction: column;
+            box-shadow: 4px 0 24px rgba(0,0,0,0.5);
+            z-index: 10;
+        }
+
+        .header {
+            padding: 18px 20px;
+            border-bottom: 1px solid var(--panel-border);
+            background: linear-gradient(180deg, rgba(0,243,255,0.06) 0%, transparent 100%);
+        }
+
+        .header h1 {
+            font-size: 1.25rem;
+            color: var(--neon-cyan);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 700;
+            text-shadow: 0 0 16px rgba(0,243,255,0.3);
+        }
+
+        .badge-pro {
+            background: linear-gradient(135deg, var(--neon-magenta), #a800ff);
+            color: white;
+            font-size: 0.65rem;
+            padding: 2px 7px;
+            border-radius: 4px;
+            font-weight: 800;
+            letter-spacing: 1px;
+        }
+
+        .header p {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        /* Banner Promocional Gancho CarteLed Studio */
+        .carteled-promo-banner {
+            position: absolute;
+            top: 16px;
+            right: 20px;
+            background: rgba(19, 19, 28, 0.92);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(0, 243, 255, 0.35);
+            box-shadow: 0 0 25px rgba(0, 243, 255, 0.2), 0 8px 32px rgba(0,0,0,0.6);
+            border-radius: 12px;
+            padding: 12px 18px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            z-index: 100;
+            transition: all 0.3s ease;
+        }
+
+        .carteled-promo-banner:hover {
+            border-color: var(--neon-magenta);
+            box-shadow: 0 0 30px rgba(255, 0, 234, 0.35), 0 8px 32px rgba(0,0,0,0.8);
+            transform: translateY(-2px);
+        }
+
+        .promo-badge {
+            background: linear-gradient(135deg, var(--neon-cyan), var(--neon-magenta));
+            color: #05050a;
+            font-size: 0.7rem;
+            font-weight: 800;
+            padding: 3px 8px;
+            border-radius: 4px;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        .promo-text {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .promo-text strong {
+            font-size: 0.88rem;
+            color: #fff;
+            letter-spacing: 0.3px;
+        }
+
+        .promo-text span {
+            font-size: 0.76rem;
+            color: var(--text-muted);
+        }
+
+        .promo-btn {
+            background: linear-gradient(135deg, var(--neon-cyan), #00b4d8);
+            color: #05050a;
+            text-decoration: none;
+            font-weight: 800;
+            font-size: 0.8rem;
+            padding: 8px 16px;
+            border-radius: 6px;
+            box-shadow: 0 0 15px rgba(0, 243, 255, 0.4);
+            white-space: nowrap;
+            transition: all 0.2s ease;
+        }
+
+        .promo-btn:hover {
+            background: linear-gradient(135deg, var(--neon-magenta), #d90429);
+            color: #fff;
+            box-shadow: 0 0 20px rgba(255, 0, 234, 0.6);
+        }
+
+        @media (max-width: 900px) {
+            .carteled-promo-banner {
+                position: static;
+                margin: 10px;
+                flex-direction: column;
+                text-align: center;
+            }
+        }
+
+        .scrollable-content {
+            padding: 16px 20px;
+            overflow-y: auto;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .scrollable-content::-webkit-scrollbar { width: 6px; }
+        .scrollable-content::-webkit-scrollbar-thumb {
+            background: var(--panel-border);
+            border-radius: 3px;
+        }
+
+        .section-box {
+            background: rgba(255,255,255,0.02);
+            border: 1px solid var(--panel-border);
+            border-radius: 8px;
+            padding: 13px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .section-title {
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--neon-cyan);
+        }
+
+        /* Toggle de Modo */
+        .mode-toggle {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            background: var(--input-bg);
+            border-radius: 6px;
+            padding: 3px;
+            border: 1px solid var(--input-border);
+        }
+
+        .mode-btn {
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            padding: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+
+        .mode-btn.active {
+            background: var(--neon-cyan);
+            color: #05050a;
+            box-shadow: 0 0 12px rgba(0,243,255,0.4);
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        label {
+            font-size: 0.8rem;
+            color: var(--text-main);
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .label-unit {
+            color: var(--text-muted);
+            font-size: 0.75rem;
+        }
+
+        input[type="text"], select {
+            background: var(--input-bg);
+            border: 1px solid var(--input-border);
+            color: var(--text-main);
+            border-radius: 6px;
+            padding: 9px 12px;
+            font-size: 0.9rem;
+            outline: none;
+            -webkit-user-select: text;
+            user-select: text;
+        }
+
+        input[type="text"]:focus, select:focus {
+            border-color: var(--neon-cyan);
+        }
+
+        .drop-zone {
+            border: 2px dashed var(--input-border);
+            background: rgba(28, 28, 43, 0.4);
+            border-radius: 8px;
+            padding: 14px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .drop-zone:hover, .drop-zone.dragover {
+            border-color: var(--neon-cyan);
+            background: rgba(0, 243, 255, 0.05);
+        }
+
+        .drop-zone svg {
+            width: 26px;
+            height: 26px;
+            fill: var(--text-muted);
+        }
+
+        .drop-zone span {
+            font-size: 0.85rem;
+            color: var(--neon-cyan);
+            font-weight: 600;
+        }
+
+        .drop-zone p {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .param-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .param-item {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .param-item input[type="number"] {
+            background: var(--input-bg);
+            border: 1px solid var(--input-border);
+            color: var(--text-main);
+            border-radius: 6px;
+            padding: 8px 10px;
+            font-size: 0.85rem;
+            outline: none;
+            -webkit-user-select: text;
+            user-select: text;
+        }
+
+        .param-item input[type="number"]:focus {
+            border-color: var(--neon-cyan);
+        }
+
+        .checkbox-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+        }
+
+        .checkbox-row input {
+            accent-color: var(--neon-cyan);
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+        }
+
+        .checkbox-row span {
+            font-size: 0.82rem;
+            color: var(--text-main);
+        }
+
+        /* Botones de Exportación */
+        .actions-box {
+            padding: 16px 20px;
+            border-top: 1px solid var(--panel-border);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            background: rgba(0,0,0,0.25);
+        }
+
+        .btn-export {
+            background: linear-gradient(90deg, #00f3ff 0%, #00bcff 100%);
+            color: #050510;
+            border: none;
+            border-radius: 6px;
+            padding: 13px;
+            font-size: 0.92rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            box-shadow: 0 0 20px rgba(0,243,255,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+
+        .btn-export:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 25px rgba(0,243,255,0.5);
+            background: #00f3ff;
+        }
+
+        .btn-secondary {
+            background: transparent;
+            border: 1px solid var(--neon-magenta);
+            color: var(--neon-magenta);
+            border-radius: 6px;
+            padding: 9px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: all 0.2s;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 0, 234, 0.1);
+        }
+
+        /* --- Viewport 3D --- */
+        #viewport-container {
+            flex: 1;
+            position: relative;
+            background: radial-gradient(circle at 60% 40%, #151525 0%, #08080f 85%);
+            overflow: hidden;
+        }
+
+        #canvas3d {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .info-pill {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(19, 19, 28, 0.85);
+            -webkit-backdrop-filter: blur(8px);
+            backdrop-filter: blur(8px);
+            border: 1px solid var(--panel-border);
+            border-radius: 8px;
+            padding: 10px 16px;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            pointer-events: none;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+        }
+
+        .info-pill strong {
+            color: var(--neon-cyan);
+            font-weight: 600;
+        }
+
+        .viewport-controls {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            gap: 8px;
+        }
+
+        .view-btn {
+            background: rgba(19, 19, 28, 0.85);
+            border: 1px solid var(--panel-border);
+            color: var(--text-main);
+            padding: 7px 12px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .view-btn:hover {
+            border-color: var(--neon-cyan);
+            color: var(--neon-cyan);
+        }
+
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+    <!-- Panel Lateral -->
+    <aside id="sidebar">
+        <div class="header">
+            <h1>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                    <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                    <line x1="12" y1="22.08" x2="12" y2="12"></line>
+                </svg>
+                Generador 3D
+                <span class="badge-pro">PRO</span>
+            </h1>
+            <p>Generador de corpóreos y cajas huecas para tiras LED.</p>
+        </div>
+
+        <div class="scrollable-content">
+            <!-- Origen -->
+            <div class="section-box">
+                <div class="section-title">Origen del Corpóreo</div>
+                <div class="mode-toggle">
+                    <button id="btn-mode-text" class="mode-btn active" onclick="setMode('text')">Texto / Letra</button>
+                    <button id="btn-mode-svg" class="mode-btn" onclick="setMode('svg')">Logo SVG</button>
+                </div>
+
+                <!-- Input Texto -->
+                <div id="controls-text" class="form-group">
+                    <label>Texto a corporear:</label>
+                    <input type="text" id="input-text" value="LED" placeholder="Ej: BAR, OPEN, LED..." maxlength="12">
+
+                    <label style="margin-top: 6px;">Tipografía:</label>
+                    <select id="select-font">
+                        <option value="impact" selected>Impact (Excelente grosor para LEDs)</option>
+                        <option value="custom">Cargar fuente .TTF / .OTF...</option>
+                    </select>
+                    <input type="file" id="font-file-input" accept=".ttf,.otf" style="display: none;">
+                </div>
+
+                <!-- Input SVG -->
+                <div id="controls-svg" class="form-group hidden">
+                    <label>Archivo Vectorial (.SVG):</label>
+                    <div class="drop-zone" id="drop-zone">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/>
+                        </svg>
+                        <span>Hacé clic o arrastrá un SVG</span>
+                        <p id="svg-file-name">Formas o letras cerradas</p>
+                    </div>
+                    <input type="file" id="svg-file-input" accept=".svg" style="display: none;">
+                </div>
+            </div>
+
+            <!-- Dimensiones 3D -->
+            <div class="section-box">
+                <div class="section-title">Dimensiones de Impresión 3D</div>
+                
+                <div class="param-grid">
+                    <div class="param-item">
+                        <label>Altura / Escala <span class="label-unit">(mm)</span></label>
+                        <input type="number" id="param-height" value="120" min="20" max="400" step="5">
+                    </div>
+                    <div class="param-item">
+                        <label>Profundidad <span class="label-unit">(mm)</span></label>
+                        <input type="number" id="param-depth" value="35" min="10" max="150" step="1">
+                    </div>
+                </div>
+
+                <div class="param-grid">
+                    <div class="param-item">
+                        <label>Espesor Pared <span class="label-unit">(mm)</span></label>
+                        <input type="number" id="param-wall" value="2.0" min="1.0" max="6.0" step="0.4">
+                    </div>
+                    <div class="param-item">
+                        <label>Espesor Fondo <span class="label-unit">(mm)</span></label>
+                        <input type="number" id="param-base" value="2.0" min="0.8" max="6.0" step="0.4">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detalles LED y Difusor -->
+            <div class="section-box">
+                <div class="section-title">Detalles para Carteles LED</div>
+                
+                <div class="checkbox-row">
+                    <input type="checkbox" id="param-lip-enabled" checked>
+                    <span>Escalón perimetral para tapa difusora</span>
+                </div>
+
+                <div class="param-grid" id="lip-params">
+                    <div class="param-item">
+                        <label>Profundidad Rebaje <span class="label-unit">(mm)</span></label>
+                        <input type="number" id="param-lip-depth" value="2.0" min="0.8" max="8.0" step="0.5">
+                    </div>
+                    <div class="param-item">
+                        <label>Ancho Pestaña <span class="label-unit">(mm)</span></label>
+                        <input type="number" id="param-lip-width" value="1.5" min="0.8" max="4.0" step="0.2">
+                    </div>
+                </div>
+
+                <div class="checkbox-row" style="margin-top: 4px;">
+                    <input type="checkbox" id="param-cable-hole" checked>
+                    <span>Agujero pasacables trasero (6 mm)</span>
+                </div>
+            </div>
+
+            <!-- Vista 3D Opciones -->
+            <div class="section-box">
+                <div class="section-title">Visualización 3D</div>
+                <div class="checkbox-row">
+                    <input type="checkbox" id="view-diffuser">
+                    <span>Simular lámina difusora colocada</span>
+                </div>
+                <div class="checkbox-row">
+                    <input type="checkbox" id="view-wireframe">
+                    <span>Modo malla / Wireframe</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Descargas STL -->
+        <div class="actions-box">
+            <button id="btn-export-stl" class="btn-export" onclick="exportSTL('box')">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="7 10 12 15 17 10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+                DESCARGAR STL DE LA CAJA
+            </button>
+            <button id="btn-export-diffuser" class="btn-secondary" onclick="exportSTL('diffuser')">
+                Descargar STL del Difusor (Tapa)
+            </button>
+        </div>
+    </aside>
+
+    <!-- Viewport 3D -->
+    <main id="viewport-container">
+        <!-- Banner Gancho: CarteLed Studio PRO -->
+        <aside class="carteled-promo-banner" aria-label="Anuncio CarteLed Studio">
+            <span class="promo-badge">Controlador LED</span>
+            <div class="promo-text">
+                <strong>¿Querés animar tus letras con efectos dinámicos?</strong>
+                <span>Mapeá tiras WS2812B y controlá por WiFi sin escribir código C++.</span>
+            </div>
+            <a href="https://carteledstudio.netlify.app" target="_blank" rel="noopener noreferrer" class="promo-btn">
+                Ver CarteLed Studio &rarr;
+            </a>
+        </aside>
+
+        <canvas id="canvas3d"></canvas>
+
+        <div class="info-pill">
+            Dimensiones estimadas: <strong id="lbl-box-dim">0 x 0 x 0 mm</strong>
+            <br>
+            <span style="font-size: 0.72rem;">Click izquierdo: Rotar | Rueda: Zoom | Click derecho: Mover</span>
+        </div>
+
+        <div class="viewport-controls">
+            <button class="view-btn" onclick="resetCamera('front')">Frente</button>
+            <button class="view-btn" onclick="resetCamera('top')">Superior</button>
+            <button class="view-btn" onclick="resetCamera('iso')">Isométrica</button>
+        </div>
+    </main>
+
+    <script>
+        // =====================================================================
+        // ESTADO GLOBAL
+        // =====================================================================
+        let currentMode = 'text';
+        let currentSVGContent = null;
+        let loadedFont = null;
+
+        let scene, camera, renderer, controls;
+        let mainMesh = null, diffuserMesh = null, edgeLine = null;
+        let currentBoxGeometry = null, currentDiffuserGeometry = null;
+
+        window.addEventListener('DOMContentLoaded', () => {
+            initThree();
+            setupEventListeners();
+            loadEmbeddedFont();
+        });
+
+        // =====================================================================
+        // THREE.JS CONFIGURACIÓN
+        // =====================================================================
+        function initThree() {
+            const container = document.getElementById('viewport-container');
+            const canvas = document.getElementById('canvas3d');
+
+            scene = new THREE.Scene();
+
+            camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 1, 4000);
+            camera.position.set(0, -180, 220);
+
+            renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+
+            // Luces
+            const ambient = new THREE.AmbientLight(0xffffff, 0.7);
+            scene.add(ambient);
+
+            const light1 = new THREE.DirectionalLight(0x00f3ff, 1.2);
+            light1.position.set(200, 250, 300);
+            scene.add(light1);
+
+            const light2 = new THREE.DirectionalLight(0xff00ea, 0.8);
+            light2.position.set(-200, -250, 150);
+            scene.add(light2);
+
+            // Grilla de cama de impresión (220x220 mm)
+            const grid = new THREE.GridHelper(220, 22, 0x00f3ff, 0x22223a);
+            grid.rotation.x = Math.PI / 2;
+            scene.add(grid);
+
+            window.addEventListener('resize', onResize);
+            animate();
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        function onResize() {
+            const container = document.getElementById('viewport-container');
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        }
+
+        function resetCamera(view) {
+            controls.target.set(0, 0, 0);
+            if (view === 'front') camera.position.set(0, 0, 280);
+            else if (view === 'top') camera.position.set(0, -280, 0.1);
+            else camera.position.set(0, -180, 220);
+            controls.update();
+        }
+
+        // =====================================================================
+        // CARGA DE FUENTES LOCALES Y ARCHIVOS
+        // =====================================================================
+        function loadEmbeddedFont() {
+            try {
+                if (typeof EMBEDDED_FONT_IMPACT_BASE64 !== 'undefined') {
+                    const binaryStr = atob(EMBEDDED_FONT_IMPACT_BASE64);
+                    const bytes = new Uint8Array(binaryStr.length);
+                    for (let i = 0; i < binaryStr.length; i++) {
+                        bytes[i] = binaryStr.charCodeAt(i);
+                    }
+                    loadedFont = opentype.parse(bytes.buffer);
+                    update3DScene();
+                } else {
+                    console.error("No se encontró la fuente local embebida.");
+                }
+            } catch (err) {
+                console.error("Error parseando fuente embebida:", err);
+            }
+        }
+
+        function setupEventListeners() {
+            ['input-text', 'param-height', 'param-depth', 'param-wall', 'param-base', 'param-lip-depth', 'param-lip-width'].forEach(id => {
+                document.getElementById(id).addEventListener('input', debounce(update3DScene, 250));
+            });
+
+            ['param-lip-enabled', 'param-cable-hole', 'view-wireframe', 'view-diffuser'].forEach(id => {
+                document.getElementById(id).addEventListener('change', update3DScene);
+            });
+
+            document.getElementById('select-font').addEventListener('change', (e) => {
+                if (e.target.value === 'custom') {
+                    document.getElementById('font-file-input').click();
+                } else {
+                    loadEmbeddedFont();
+                }
+            });
+
+            document.getElementById('font-file-input').addEventListener('change', (e) => {
+                if (e.target.files && e.target.files[0]) {
+                    const reader = new FileReader();
+                    reader.onload = (evt) => {
+                        try {
+                            loadedFont = opentype.parse(evt.target.result);
+                            document.getElementById('select-font').options[1].text = `Personalizada: ${e.target.files[0].name}`;
+                            update3DScene();
+                        } catch(err) {
+                            alert("Error al leer la fuente seleccionada.");
+                        }
+                    };
+                    reader.readAsArrayBuffer(e.target.files[0]);
+                }
+            });
+
+            // SVG Drag and drop
+            const dropZone = document.getElementById('drop-zone');
+            const svgInput = document.getElementById('svg-file-input');
+
+            dropZone.addEventListener('click', () => svgInput.click());
+            dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
+            dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('dragover');
+                if (e.dataTransfer.files && e.dataTransfer.files[0]) handleSVG(e.dataTransfer.files[0]);
+            });
+            svgInput.addEventListener('change', (e) => {
+                if (e.target.files && e.target.files[0]) handleSVG(e.target.files[0]);
+            });
+        }
+
+        function setMode(mode) {
+            currentMode = mode;
+            if (mode === 'text') {
+                document.getElementById('btn-mode-text').classList.add('active');
+                document.getElementById('btn-mode-svg').classList.remove('active');
+                document.getElementById('controls-text').classList.remove('hidden');
+                document.getElementById('controls-svg').classList.add('hidden');
+            } else {
+                document.getElementById('btn-mode-svg').classList.add('active');
+                document.getElementById('btn-mode-text').classList.remove('active');
+                document.getElementById('controls-svg').classList.remove('hidden');
+                document.getElementById('controls-text').classList.add('hidden');
+            }
+            update3DScene();
+        }
+
+        function handleSVG(file) {
+            document.getElementById('svg-file-name').innerText = file.name;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                currentSVGContent = e.target.result;
+                update3DScene();
+            };
+            reader.readAsText(file);
+        }
+
+        // =====================================================================
+        // EXTRACCIÓN DE CONTORNOS Y FORMAS (THREE.SHAPE NATIVO)
+        // =====================================================================
+        function extractShapes(targetH) {
+            if (currentMode === 'text') {
+                const text = document.getElementById('input-text').value.trim() || 'LED';
+                if (!loadedFont) return [];
+
+                // Convertir OpenType glyphs a Three.js ShapePath
+                const fontPath = loadedFont.getPath(text, 0, 0, targetH);
+                return convertOpenTypeToThreeShapes(fontPath, targetH);
+            } else {
+                if (!currentSVGContent) return [];
+                return convertSVGToThreeShapes(currentSVGContent, targetH);
+            }
+        }
+
+        function convertOpenTypeToThreeShapes(fontPath, targetH) {
+            // Convertir el trazado vectorial a SVG nativo usando path.toSVG() de OpenType
+            // y luego procesarlo con THREE.SVGLoader (igual que en el modo SVG que funciona perfecto)
+            const pathData = fontPath.toPathData(2);
+            const svgString = `<svg xmlns="http://www.w3.org/2000/svg"><path d="${pathData}" fill="black"/></svg>`;
+            return convertSVGToThreeShapes(svgString, targetH);
+        }
+
+        function convertSVGToThreeShapes(svgString, targetH) {
+            const loader = new THREE.SVGLoader();
+            const svgData = loader.parse(svgString);
+            const shapes = [];
+
+            svgData.paths.forEach(path => {
+                const pathShapes = THREE.SVGLoader.createShapes(path);
+                pathShapes.forEach(s => shapes.push(s));
+            });
+
+            return centerAndScaleShapes(shapes, targetH);
+        }
+
+        function centerAndScaleShapes(shapes, targetH) {
+            if (!shapes || shapes.length === 0) return [];
+
+            let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+
+            shapes.forEach(shape => {
+                const pts = shape.getPoints();
+                pts.forEach(p => {
+                    if (p.x < minX) minX = p.x;
+                    if (p.x > maxX) maxX = p.x;
+                    if (p.y < minY) minY = p.y;
+                    if (p.y > maxY) maxY = p.y;
+                });
+            });
+
+            const currentH = (maxY - minY) || 1;
+            const scale = targetH / currentH;
+            const midX = (minX + maxX) / 2;
+            const midY = (minY + maxY) / 2;
+
+            shapes.forEach(shape => {
+                // Escalar y centrar puntos exteriores
+                shape.curves.forEach(c => {
+                    if (c.v1) { c.v1.x = (c.v1.x - midX) * scale; c.v1.y = (c.v1.y - midY) * scale; }
+                    if (c.v2) { c.v2.x = (c.v2.x - midX) * scale; c.v2.y = (c.v2.y - midY) * scale; }
+                    if (c.v0) { c.v0.x = (c.v0.x - midX) * scale; c.v0.y = (c.v0.y - midY) * scale; }
+                });
+
+                // Escalar y centrar agujeros interiores
+                shape.holes.forEach(hole => {
+                    hole.curves.forEach(c => {
+                        if (c.v1) { c.v1.x = (c.v1.x - midX) * scale; c.v1.y = (c.v1.y - midY) * scale; }
+                        if (c.v2) { c.v2.x = (c.v2.x - midX) * scale; c.v2.y = (c.v2.y - midY) * scale; }
+                        if (c.v0) { c.v0.x = (c.v0.x - midX) * scale; c.v0.y = (c.v0.y - midY) * scale; }
+                    });
+                });
+            });
+
+            return shapes;
+        }
+
+        // =====================================================================
+        // OFFSET ROBUSTO 2D DE SHAPES (Para vaciado interior y pestaña)
+        // =====================================================================
+        function createOffsetShape(shape, delta) {
+            // Delta negativo: achica la forma hacia adentro
+            const newShape = new THREE.Shape();
+            const pts = shape.getPoints(24);
+            const offsetPts = offsetPolygonPoints(pts, delta);
+            if (offsetPts.length < 3) return null;
+
+            newShape.moveTo(offsetPts[0].x, offsetPts[0].y);
+            for (let i = 1; i < offsetPts.length; i++) {
+                newShape.lineTo(offsetPts[i].x, offsetPts[i].y);
+            }
+            newShape.closePath();
+
+            // Offset de agujeros interiores (se expanden con delta negativo)
+            shape.holes.forEach(hole => {
+                const holePts = hole.getPoints(24);
+                const offsetHolePts = offsetPolygonPoints(holePts, -delta);
+                if (offsetHolePts.length >= 3) {
+                    const holePath = new THREE.Path();
+                    holePath.moveTo(offsetHolePts[0].x, offsetHolePts[0].y);
+                    for (let i = 1; i < offsetHolePts.length; i++) {
+                        holePath.lineTo(offsetHolePts[i].x, offsetHolePts[i].y);
+                    }
+                    holePath.closePath();
+                    newShape.holes.push(holePath);
+                }
+            });
+
+            return newShape;
+        }
+
+        function offsetPolygonPoints(points, delta) {
+            const count = points.length;
+            if (count < 3) return [];
+
+            // Determinar si los puntos van en sentido horario o antihorario
+            let area = 0;
+            for (let i = 0; i < count; i++) {
+                const j = (i + 1) % count;
+                area += points[i].x * points[j].y - points[j].x * points[i].y;
+            }
+            const isCCW = area > 0;
+            const sign = isCCW ? 1 : -1;
+
+            const result = [];
+            for (let i = 0; i < count; i++) {
+                const prev = points[(i - 1 + count) % count];
+                const curr = points[i];
+                const next = points[(i + 1) % count];
+
+                let dx1 = curr.x - prev.x, dy1 = curr.y - prev.y;
+                let len1 = Math.hypot(dx1, dy1) || 1;
+                dx1 /= len1; dy1 /= len1;
+
+                let dx2 = next.x - curr.x, dy2 = next.y - curr.y;
+                let len2 = Math.hypot(dx2, dy2) || 1;
+                dx2 /= len2; dy2 /= len2;
+
+                // Normales hacia la izquierda en sentido del recorrido
+                const nx1 = -dy1 * sign, ny1 = dx1 * sign;
+                const nx2 = -dy2 * sign, ny2 = dx2 * sign;
+
+                const bisectorX = nx1 + nx2;
+                const bisectorY = ny1 + ny2;
+                const bLen = Math.hypot(bisectorX, bisectorY) || 1;
+
+                const cosHalf = (nx1 * bisectorX + ny1 * bisectorY) / bLen;
+                const d = delta / (Math.max(0.4, cosHalf));
+
+                result.push(new THREE.Vector2(
+                    curr.x + (bisectorX / bLen) * d,
+                    curr.y + (bisectorY / bLen) * d
+                ));
+            }
+            return result;
+        }
+
+        // =====================================================================
+        // RECONSTRUCCIÓN 3D EN TIEMPO REAL
+        // =====================================================================
+        function update3DScene() {
+            // Limpiar escena previa
+            if (mainMesh) { scene.remove(mainMesh); mainMesh = null; }
+            if (diffuserMesh) { scene.remove(diffuserMesh); diffuserMesh = null; }
+            if (edgeLine) { scene.remove(edgeLine); edgeLine = null; }
+
+            const height = parseFloat(document.getElementById('param-height').value) || 120;
+            const depth = parseFloat(document.getElementById('param-depth').value) || 35;
+            const wall = parseFloat(document.getElementById('param-wall').value) || 2.0;
+            const baseThickness = parseFloat(document.getElementById('param-base').value) || 2.0;
+            const hasLip = document.getElementById('param-lip-enabled').checked;
+            const lipDepth = hasLip ? (parseFloat(document.getElementById('param-lip-depth').value) || 2.0) : 0;
+            const lipWidth = hasLip ? (parseFloat(document.getElementById('param-lip-width').value) || 1.5) : 0;
+            const hasCableHole = document.getElementById('param-cable-hole').checked;
+            const isWireframe = document.getElementById('view-wireframe').checked;
+            const showDiffuser = document.getElementById('view-diffuser').checked;
+
+            const shapes = extractShapes(height);
+            if (!shapes || shapes.length === 0) {
+                document.getElementById('lbl-box-dim').innerText = "0 x 0 x 0 mm";
+                return;
+            }
+
+            // Construir geometrías sólidas con Three.js ExtrudeGeometry
+            const geometriesToMerge = [];
+
+            shapes.forEach(shape => {
+                // 1. Fondo sólido (de Z = 0 a Z = baseThickness)
+                const baseGeom = new THREE.ExtrudeGeometry(shape, {
+                    depth: baseThickness,
+                    bevelEnabled: false
+                });
+                geometriesToMerge.push(baseGeom);
+
+                // 2. Paredes huecas (anillo entre contorno exterior y contorno interior)
+                const innerShape = createOffsetShape(shape, -wall);
+                if (innerShape) {
+                    // La pared hueca es una Shape exterior que tiene como "hole" la innerShape
+                    const wallShape = new THREE.Shape(shape.getPoints(24));
+                    wallShape.holes = [new THREE.Path(innerShape.getPoints(24))];
+
+                    // Pared principal
+                    const mainWallHeight = depth - lipDepth;
+                    const wallGeom = new THREE.ExtrudeGeometry(wallShape, {
+                        depth: mainWallHeight,
+                        bevelEnabled: false
+                    });
+                    wallGeom.translate(0, 0, baseThickness);
+                    geometriesToMerge.push(wallGeom);
+
+                    // Si hay pestaña superior para el difusor
+                    if (hasLip && lipDepth > 0) {
+                        const lipShape = createOffsetShape(shape, -(wall - lipWidth));
+                        if (lipShape) {
+                            const lipWallShape = new THREE.Shape(shape.getPoints(24));
+                            lipWallShape.holes = [new THREE.Path(lipShape.getPoints(24))];
+
+                            const lipGeom = new THREE.ExtrudeGeometry(lipWallShape, {
+                                depth: lipDepth,
+                                bevelEnabled: false
+                            });
+                            lipGeom.translate(0, 0, mainWallHeight + baseThickness);
+                            geometriesToMerge.push(lipGeom);
+                        }
+                    }
+                } else {
+                    // Fallback si la pared no cabe: cuerpo sólido completo
+                    const solidGeom = new THREE.ExtrudeGeometry(shape, {
+                        depth: depth,
+                        bevelEnabled: false
+                    });
+                    geometriesToMerge.push(solidGeom);
+                }
+            });
+
+            // Agrupar en una sola malla
+            const mergedGeometry = mergeBufferGeometries(geometriesToMerge);
+            currentBoxGeometry = mergedGeometry;
+
+            const material = new THREE.MeshStandardMaterial({
+                color: 0x181a24,
+                roughness: 0.35,
+                metalness: 0.1,
+                wireframe: isWireframe
+            });
+
+            mainMesh = new THREE.Mesh(mergedGeometry, material);
+            scene.add(mainMesh);
+
+            // Borde neón
+            const edges = new THREE.EdgesGeometry(mergedGeometry);
+            edgeLine = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0x00f3ff }));
+            if (!isWireframe) scene.add(edgeLine);
+
+            // Construir tapa difusora
+            if (hasLip) {
+                const diffuserGeometries = [];
+                shapes.forEach(shape => {
+                    const lipShape = createOffsetShape(shape, -(wall - lipWidth + 0.3)); // 0.3 mm tolerancia
+                    if (lipShape) {
+                        const diffGeom = new THREE.ExtrudeGeometry(lipShape, { depth: 1.5, bevelEnabled: false });
+                        diffGeom.translate(0, 0, depth - lipDepth);
+                        diffuserGeometries.push(diffGeom);
+                    }
+                });
+
+                if (diffuserGeometries.length > 0) {
+                    currentDiffuserGeometry = mergeBufferGeometries(diffuserGeometries);
+                    const diffMaterial = new THREE.MeshStandardMaterial({
+                        color: 0xffffff,
+                        transparent: true,
+                        opacity: 0.7,
+                        roughness: 0.2
+                    });
+                    diffuserMesh = new THREE.Mesh(currentDiffuserGeometry, diffMaterial);
+                    diffuserMesh.visible = showDiffuser;
+                    scene.add(diffuserMesh);
+                }
+            }
+
+            // Calcular y mostrar medidas en milímetros
+            mergedGeometry.computeBoundingBox();
+            const bbox = mergedGeometry.boundingBox;
+            const sizeX = (bbox.max.x - bbox.min.x).toFixed(1);
+            const sizeY = (bbox.max.y - bbox.min.y).toFixed(1);
+            const sizeZ = depth.toFixed(1);
+            document.getElementById('lbl-box-dim').innerText = `${sizeX} x ${sizeY} x ${sizeZ} mm`;
+        }
+
+        // Fusión limpia de mallas BufferGeometry
+        function mergeBufferGeometries(geometries) {
+            let totalVertices = 0;
+            geometries.forEach(g => {
+                totalVertices += g.attributes.position.count;
+            });
+
+            const mergedPos = new Float32Array(totalVertices * 3);
+            const mergedNorm = new Float32Array(totalVertices * 3);
+            let offset = 0;
+
+            geometries.forEach(g => {
+                const pos = g.attributes.position.array;
+                const norm = g.attributes.normal ? g.attributes.normal.array : null;
+
+                for (let i = 0; i < pos.length; i++) {
+                    mergedPos[offset + i] = pos[i];
+                    if (norm) mergedNorm[offset + i] = norm[i];
+                }
+                offset += pos.length;
+            });
+
+            const merged = new THREE.BufferGeometry();
+            merged.setAttribute('position', new THREE.BufferAttribute(mergedPos, 3));
+            if (mergedNorm.length > 0) {
+                merged.setAttribute('normal', new THREE.BufferAttribute(mergedNorm, 3));
+            } else {
+                merged.computeVertexNormals();
+            }
+            return merged;
+        }
+
+        // =====================================================================
+        // EXPORTACIÓN A FORMATO STL BINARIO
+        // =====================================================================
+        function exportSTL(type) {
+            const geom = (type === 'diffuser') ? currentDiffuserGeometry : currentBoxGeometry;
+            if (!geom) {
+                alert("No hay geometría generada para exportar.");
+                return;
+            }
+
+            // Usar exportador STL nativo de Three.js (genera formato binario estándar)
+            const tempMesh = new THREE.Mesh(geom, new THREE.MeshBasicMaterial());
+            const exporter = new THREE.STLExporter();
+            const stlData = exporter.parse(tempMesh, { binary: true });
+
+            const blob = new Blob([stlData], { type: 'application/octet-stream' });
+            const link = document.createElement('a');
+            const namePrefix = (currentMode === 'text') ? (document.getElementById('input-text').value || 'letra') : 'logo_svg';
+            const suffix = (type === 'diffuser') ? '_difusor' : '_caja';
+            link.href = URL.createObjectURL(blob);
+            link.download = `corporeo_${namePrefix}${suffix}.stl`;
+            link.click();
+            URL.revokeObjectURL(link.href);
+        }
+
+        function debounce(func, wait) {
+            let timeout;
+            return function(...args) {
+                clearTimeout(timeout);
+                timeout = setTimeout(() => func.apply(this, args), wait);
+            };
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,26 @@
+Gracias por probar CarteLed Studio Free y el Generador de Corpóreos 3D!
+
+Esperamos que te sean de utilidad!
+
+Instrucciones y contenido del .ZIP
+
+Descomprimir en una nueva carpeta
+
+El ZIP incluye:
+
+Carteled-Studio-FREE-Setup.exe (Software de animación para carteles LED. No funciona la opción de programar el microcontrolador del cartel)
+Carteled-Studio-Manual.pdf  (Manual completo del Sofware).
+Generador-3D.html (Generador de corpóreos 3D).
+asset (carpeta necesaria para el funcionamiento del Generador-3D).
+Instructivo_uso_Corporeos_3D.pdf (instructivo del Generador-3D)
+Leeme.txt  (Este arhivo).
+
+Probalos y contanos! Cualquier duda o sugerencia, será bienvenida y atendida!
+
+Podés obtener CarteLed Sutdio PRO y el hardware listo para usar en: https://carteledstudio.netlify.app 
+Ahí verás las opciónes disponibles con sus precios y comprarlos directamente.
+
+Muchas gracias, saludos!! 
+
+El equipo de CarteLed Studio
+ carteledstudio@gmail.com
